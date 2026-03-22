@@ -114,8 +114,8 @@ def seed_faqs():
     """Seed the knowledge base with the default FAQs CSV."""
     faq_file = "faqs.csv"
     if not os.path.exists(faq_file):
-        print(f"Error: {faq_file} not found")
-        sys.exit(1)
+        print(f"Warning: {faq_file} not found — skipping seed. Upload CSV from the admin panel.")
+        return
 
     client = chromadb.PersistentClient(path=CHROMA_PATH)
     coll = get_chroma_collection(client, COLLECTION_NAME)
