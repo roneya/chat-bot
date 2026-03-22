@@ -565,12 +565,22 @@ def delete_kb_entry(doc_id):
 
 @app.route("/api/kb/clear", methods=["POST"])
 def clear_kb():
-    """Wipe all entries from ChromaDB collection."""
+    """Wipe all entries from ChromaDB and reset all SQLite tables."""
     try:
+        # Clear ChromaDB
         results = collection.get()
         if results["ids"]:
             collection.delete(ids=results["ids"])
         logger.info("Knowledge base cleared — %d entries removed", len(results["ids"]))
+
+        # Clear SQLite tables
+        db = get_db()
+        db.execute("DELETE FROM feedback")
+        db.execute("DELETE FROM queries")
+        db.execute("DELETE FROM users")
+        db.execute("DELETE FROM documents")
+        db.commit()
+        logger.info("Analytics tables cleared")
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     return jsonify({"status": "cleared", "total_documents": collection.count()})
