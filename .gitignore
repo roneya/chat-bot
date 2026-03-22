@@ -1,6 +1,9 @@
 .env
 __pycache__/
 *.pyc
-chroma_data/
 .venv/
 venv/
+.claude/
+chroma_data/analytics.db
+uploads/
+.chatbot.pid

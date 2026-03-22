@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f2f5;
+      padding: 30px;
+      color: #1a1a1a;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+    .header h1 { font-size: 24px; color: #1a1a1a; }
+    .header a {
+      background: #4f46e5;
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .stat-card .label { font-size: 13px; color: #888; margin-bottom: 6px; }
+    .stat-card .value { font-size: 28px; font-weight: 700; color: #4f46e5; }
+
+    .section {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      margin-bottom: 20px;
+    }
+    .section h3 {
+      font-size: 16px;
+      margin-bottom: 14px;
+      color: #333;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th {
+      text-align: left;
+      padding: 10px 12px;
+      background: #f8f9fa;
+      border-bottom: 2px solid #e5e7eb;
+      color: #666;
+      font-weight: 600;
+    }
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    tr:hover td { background: #fafafa; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge.good { background: #dcfce7; color: #166534; }
+    .badge.warn { background: #fef3c7; color: #92400e; }
+    .badge.bad { background: #fee2e2; color: #991b1b; }
+
+    .delete-btn {
+      background: #ef4444;
+      color: #fff;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .delete-btn:hover { background: #dc2626; }
+
+    .empty { color: #999; font-style: italic; padding: 20px; text-align: center; }
+
+    .q-text { max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .teach-btn {
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .teach-btn:hover { background: #4338ca; }
+
+    .teach-row td {
+      background: #f5f3ff;
+      padding: 10px 12px;
+    }
+    .teach-row textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #c4b5fd;
+      border-radius: 6px;
+      font-size: 13px;
+      resize: vertical;
+      min-height: 70px;
+      font-family: inherit;
+    }
+    .teach-row .teach-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .save-btn {
+      background: #16a34a;
+      color: #fff;
+      border: none;
+      padding: 5px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .save-btn:hover { background: #15803d; }
+    .cancel-btn {
+      background: #e5e7eb;
+      color: #374151;
+      border: none;
+      padding: 5px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .cancel-btn:hover { background: #d1d5db; }
+
+    .kb-content {
+      font-size: 13px;
+      color: #333;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-width: 600px;
+    }
+    .source-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      background: #e0e7ff;
+      color: #3730a3;
+    }
+    .source-badge.admin { background: #dcfce7; color: #166534; }
+    .page-btn {
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      padding: 5px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .page-btn:hover { background: #e5e7eb; }
+    .page-btn:disabled { opacity: 0.4; cursor: default; }
+
+    .upload-btn {
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      padding: 7px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .upload-btn:hover { background: #4338ca; }
+    .upload-btn:disabled { opacity: 0.5; cursor: default; }
+
+    .danger-btn {
+      background: #ef4444;
+      color: #fff;
+      border: none;
+      padding: 7px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .danger-btn:hover { background: #dc2626; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Admin Dashboard</h1>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button class="danger-btn" onclick="clearDB()">🗑 Clear DB</button>
+      <a href="/">Back to Chat</a>
+    </div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="section">
+    <h3>Users</h3>
+    <div id="users"></div>
+  </div>
+
+  <div class="section">
+    <h3>Upload CSV to Knowledge Base</h3>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+      <input type="file" id="csv-file" accept=".csv" style="font-size:13px;">
+      <button class="upload-btn" onclick="uploadCSV()">Upload & Ingest</button>
+      <span id="upload-status" style="font-size:13px;color:#666;"></span>
+    </div>
+    <div style="margin-top:10px;font-size:12px;color:#999;">CSV must have <code>question</code> and <code>answer</code> columns. Rows are added directly to ChromaDB.</div>
+    <div style="margin-top:14px;">
+      <div style="font-size:13px;font-weight:600;color:#555;margin-bottom:8px;">Uploaded Files</div>
+      <div id="documents"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Knowledge Base <span id="kb-count" style="font-size:13px;font-weight:400;color:#888;margin-left:6px;"></span></h3>
+    <div id="kb-entries"></div>
+    <div id="kb-pagination" style="margin-top:12px;display:flex;gap:8px;align-items:center;font-size:13px;"></div>
+  </div>
+
+  <div class="section">
+    <h3>Recent Queries</h3>
+    <div id="queries"></div>
+  </div>
+
+  <div class="section">
+    <h3>Most Asked Questions</h3>
+    <div id="topQuestions"></div>
+  </div>
+
+  <div class="section">
+    <h3>Unanswered Queries (no matching sources)</h3>
+    <div id="unanswered"></div>
+  </div>
+
+  <script>
+    let kbOffset = 0;
+    const KB_LIMIT = 20;
+
+    async function loadData() {
+      const [analyticsRes, docsRes, usersRes] = await Promise.all([
+        fetch('/api/analytics'),
+        fetch('/api/documents'),
+        fetch('/api/users'),
+      ]);
+      const analytics = await analyticsRes.json();
+      const documents = await docsRes.json();
+      const users = await usersRes.json();
+
+      renderStats(analytics.summary);
+      renderUsers(users);
+      renderDocuments(documents);
+      renderQueries(analytics.recent_queries);
+      renderTopQuestions(analytics.top_questions);
+      renderUnanswered(analytics.unanswered_queries);
+      loadKB(0);
+    }
+
+    async function loadKB(offset) {
+      kbOffset = offset;
+      const res = await fetch(`/api/kb?limit=${KB_LIMIT}&offset=${offset}`);
+      const data = await res.json();
+      renderKB(data);
+    }
+
+    function renderKB(data) {
+      document.getElementById('kb-count').textContent = `(${data.total} entries)`;
+
+      if (!data.entries.length) {
+        document.getElementById('kb-entries').innerHTML = '<div class="empty">No entries in knowledge base yet</div>';
+        document.getElementById('kb-pagination').innerHTML = '';
+        return;
+      }
+
+      let html = `<table>
+        <tr><th style="width:60%">Content</th><th>Source</th><th></th></tr>`;
+      data.entries.forEach(e => {
+        const sourceClass = e.source === 'admin' ? 'admin' : '';
+        const escaped = e.id.replace(/'/g, "\\'");
+        html += `<tr>
+          <td class="kb-content">${e.content}</td>
+          <td><span class="source-badge ${sourceClass}">${e.source}</span></td>
+          <td><button class="delete-btn" onclick="deleteKBEntry('${escaped}')">Delete</button></td>
+        </tr>`;
+      });
+      html += '</table>';
+      document.getElementById('kb-entries').innerHTML = html;
+
+      // Pagination
+      const total = data.total;
+      const start = kbOffset + 1;
+      const end = Math.min(kbOffset + KB_LIMIT, total);
+      document.getElementById('kb-pagination').innerHTML = `
+        <button class="page-btn" onclick="loadKB(${kbOffset - KB_LIMIT})" ${kbOffset === 0 ? 'disabled' : ''}>← Prev</button>
+        <span style="color:#666">${start}–${end} of ${total}</span>
+        <button class="page-btn" onclick="loadKB(${kbOffset + KB_LIMIT})" ${end >= total ? 'disabled' : ''}>Next →</button>
+      `;
+    }
+
+    async function deleteKBEntry(id) {
+      if (!confirm('Remove this entry from the knowledge base?')) return;
+      const res = await fetch(`/api/kb/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error || 'Delete failed'); return; }
+      loadKB(kbOffset);
+      refreshStats();
+    }
+
+    function renderUsers(users) {
+      if (!users.length) {
+        document.getElementById('users').innerHTML = '<div class="empty">No users yet</div>';
+        return;
+      }
+      let html = `<table><tr><th>#</th><th>Name</th><th>Email</th><th>Phone</th><th>Queries</th><th>Joined</th></tr>`;
+      users.forEach(u => {
+        html += `<tr>
+          <td>${u.id}</td>
+          <td>${u.name}</td>
+          <td>${u.email || '<span style="color:#bbb">—</span>'}</td>
+          <td>${u.phone || '<span style="color:#bbb">—</span>'}</td>
+          <td>${u.query_count}</td>
+          <td>${new Date(u.created_at).toLocaleString()}</td>
+        </tr>`;
+      });
+      html += '</table>';
+      document.getElementById('users').innerHTML = html;
+    }
+
+    function renderStats(s) {
+      document.getElementById('stats').innerHTML = `
+        <div class="stat-card"><div class="label">KB Entries</div><div class="value">${s.total_kb_entries}</div></div>
+        <div class="stat-card"><div class="label">User Queries</div><div class="value">${s.total_user_queries}</div></div>
+        <div class="stat-card"><div class="label">Unanswered</div><div class="value">${s.unanswered_count}</div></div>
+        <div class="stat-card"><div class="label">Users</div><div class="value">${s.total_users}</div></div>
+        <div class="stat-card"><div class="label">Avg Response Time</div><div class="value">${s.avg_response_time_ms}ms</div></div>
+        <div class="stat-card"><div class="label">Avg Relevance</div><div class="value">${s.avg_relevance_score ?? 'N/A'}</div></div>
+      `;
+    }
+
+    function renderDocuments(docs) {
+      if (!docs.length) {
+        document.getElementById('documents').innerHTML = '<div class="empty">No documents uploaded yet</div>';
+        return;
+      }
+      let html = `<table><tr><th>File</th><th>Type</th><th>Chunks</th><th>Uploaded</th><th></th></tr>`;
+      docs.forEach(d => {
+        html += `<tr>
+          <td>${d.filename}</td>
+          <td>${d.file_type.toUpperCase()}</td>
+          <td>${d.chunk_count}</td>
+          <td>${new Date(d.uploaded_at).toLocaleString()}</td>
+          <td><button class="delete-btn" onclick="deleteDoc(${d.id}, '${d.filename}')">Delete</button></td>
+        </tr>`;
+      });
+      html += '</table>';
+      document.getElementById('documents').innerHTML = html;
+    }
+
+    function relevanceBadge(score) {
+      if (score == null || score < 0) return '<span class="badge bad">No match</span>';
+      if (score < 0.5) return `<span class="badge good">${score.toFixed(3)}</span>`;
+      if (score < 1.0) return `<span class="badge warn">${score.toFixed(3)}</span>`;
+      return `<span class="badge bad">${score.toFixed(3)}</span>`;
+    }
+
+    function renderQueries(queries) {
+      if (!queries.length) {
+        document.getElementById('queries').innerHTML = '<div class="empty">No queries yet</div>';
+        return;
+      }
+      let html = `<table><tr><th>Question</th><th>Response Time</th><th>Relevance</th><th>Sources</th><th>Time</th></tr>`;
+      queries.forEach(q => {
+        html += `<tr>
+          <td class="q-text" title="${q.question}">${q.question}</td>
+          <td>${q.response_time_ms}ms</td>
+          <td>${relevanceBadge(q.relevance_score)}</td>
+          <td>${q.source_docs}</td>
+          <td>${new Date(q.timestamp).toLocaleString()}</td>
+        </tr>`;
+      });
+      html += '</table>';
+      document.getElementById('queries').innerHTML = html;
+    }
+
+    function renderTopQuestions(questions) {
+      if (!questions.length) {
+        document.getElementById('topQuestions').innerHTML = '<div class="empty">No data yet</div>';
+        return;
+      }
+      let html = `<table><tr><th>Question</th><th>Times Asked</th></tr>`;
+      questions.forEach(q => {
+        html += `<tr><td class="q-text">${q.question}</td><td>${q.count}</td></tr>`;
+      });
+      html += '</table>';
+      document.getElementById('topQuestions').innerHTML = html;
+    }
+
+    function renderUnanswered(queries) {
+      if (!queries.length) {
+        document.getElementById('unanswered').innerHTML = '<div class="empty">All queries found matching sources!</div>';
+        return;
+      }
+      let html = `<table id="unanswered-table"><tr><th>Question</th><th>Time</th><th></th></tr>`;
+      queries.forEach((q, i) => {
+        const escaped = q.question.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        html += `
+          <tr id="unanswered-row-${i}">
+            <td class="q-text" title="${escaped}">${q.question}</td>
+            <td>${new Date(q.timestamp).toLocaleString()}</td>
+            <td><button class="teach-btn" onclick="showTeachForm(${i}, '${escaped}')">Add Answer</button></td>
+          </tr>
+          <tr class="teach-row" id="teach-form-${i}" style="display:none">
+            <td colspan="3">
+              <div style="font-size:13px;color:#555;margin-bottom:6px;">
+                <strong>Q:</strong> ${q.question}
+              </div>
+              <textarea id="teach-answer-${i}" placeholder="Type the answer for this question..."></textarea>
+              <div class="teach-actions">
+                <button class="save-btn" onclick="teachFAQ(${i}, '${escaped}')">Save to Knowledge Base</button>
+                <button class="cancel-btn" onclick="hideTeachForm(${i})">Cancel</button>
+              </div>
+            </td>
+          </tr>`;
+      });
+      html += '</table>';
+      document.getElementById('unanswered').innerHTML = html;
+    }
+
+    async function refreshStats() {
+      const res = await fetch('/api/analytics');
+      const analytics = await res.json();
+      renderStats(analytics.summary);
+    }
+
+    function showTeachForm(i, question) {
+      document.getElementById(`teach-form-${i}`).style.display = '';
+      document.getElementById(`teach-answer-${i}`).focus();
+    }
+
+    function hideTeachForm(i) {
+      document.getElementById(`teach-form-${i}`).style.display = 'none';
+      document.getElementById(`teach-answer-${i}`).value = '';
+    }
+
+    async function teachFAQ(i, question) {
+      const answerEl = document.getElementById(`teach-answer-${i}`);
+      const answer = answerEl.value.trim();
+      if (!answer) {
+        answerEl.focus();
+        return;
+      }
+
+      const saveBtn = document.querySelector(`#teach-form-${i} .save-btn`);
+      saveBtn.textContent = 'Saving…';
+      saveBtn.disabled = true;
+
+      try {
+        const res = await fetch('/api/teach', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question, answer }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed');
+
+        // Mark row as answered
+        const row = document.getElementById(`unanswered-row-${i}`);
+        row.cells[2].innerHTML = '<span class="badge good">✓ Added</span>';
+        hideTeachForm(i);
+        // Refresh stats and KB section — don't re-render the unanswered table
+        refreshStats();
+        loadKB(kbOffset);
+      } catch (err) {
+        saveBtn.textContent = 'Save to Knowledge Base';
+        saveBtn.disabled = false;
+        alert('Error: ' + err.message);
+      }
+    }
+
+    async function uploadCSV() {
+      const fileInput = document.getElementById('csv-file');
+      const statusEl = document.getElementById('upload-status');
+      const btn = document.querySelector('.upload-btn');
+
+      if (!fileInput.files.length) {
+        statusEl.textContent = 'Pick a CSV file first.';
+        statusEl.style.color = '#ef4444';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      btn.disabled = true;
+      btn.textContent = 'Uploading…';
+      statusEl.textContent = '';
+
+      try {
+        const res = await fetch('/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Upload failed');
+        statusEl.textContent = `✓ ${data.chunks_added} entries added. KB now has ${data.total_documents} entries.`;
+        statusEl.style.color = '#16a34a';
+        fileInput.value = '';
+        loadData();
+      } catch (err) {
+        statusEl.textContent = '✗ ' + err.message;
+        statusEl.style.color = '#ef4444';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Upload & Ingest';
+      }
+    }
+
+    async function clearDB() {
+      if (!confirm('This will delete ALL entries from the knowledge base. Are you sure?')) return;
+      if (!confirm('Last chance — this cannot be undone. Clear everything?')) return;
+
+      try {
+        const res = await fetch('/api/kb/clear', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed');
+        alert(`Done. KB cleared. ${data.total_documents} entries remaining.`);
+        loadData();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    async function deleteDoc(id, name) {
+      if (!confirm(`Delete "${name}" and remove its data from the knowledge base?`)) return;
+      await fetch(`/api/documents/${id}`, { method: 'DELETE' });
+      loadData();
+    }
+
+    loadData();
+    setInterval(loadData, 30000);
+  </script>
+</body>
+</html>

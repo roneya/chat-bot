@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Customer Support Chat</title>
+  <title>Knowledge Assistant</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -17,8 +17,8 @@
     }
 
     .chat-container {
-      width: 460px;
-      height: 680px;
+      width: 500px;
+      height: 720px;
       background: #fff;
       border-radius: 16px;
       box-shadow: 0 8px 30px rgba(0,0,0,0.12);
@@ -30,7 +30,7 @@
     .chat-header {
       background: #4f46e5;
       color: #fff;
-      padding: 18px 20px;
+      padding: 16px 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -38,7 +38,9 @@
 
     .chat-header h2 { font-size: 16px; font-weight: 600; }
 
-    .chat-header button {
+    .header-actions { display: flex; gap: 8px; }
+
+    .header-actions button, .header-actions a {
       background: rgba(255,255,255,0.2);
       border: none;
       color: #fff;
@@ -46,8 +48,9 @@
       border-radius: 6px;
       cursor: pointer;
       font-size: 12px;
+      text-decoration: none;
     }
-    .chat-header button:hover { background: rgba(255,255,255,0.3); }
+    .header-actions button:hover, .header-actions a:hover { background: rgba(255,255,255,0.3); }
 
     .chat-messages {
       flex: 1;
@@ -59,7 +62,7 @@
     }
 
     .message {
-      max-width: 80%;
+      max-width: 82%;
       padding: 10px 14px;
       border-radius: 12px;
       font-size: 14px;
@@ -81,10 +84,34 @@
       border-bottom-left-radius: 4px;
     }
 
-    .message.bot.error {
-      background: #fee2e2;
-      color: #991b1b;
+    .message.bot.error { background: #fee2e2; color: #991b1b; }
+    .message.bot.success { background: #dcfce7; color: #166534; }
+
+    .message .meta {
+      font-size: 11px;
+      color: #888;
+      margin-top: 6px;
     }
+
+    .feedback-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .feedback-btn {
+      background: none;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      padding: 2px 8px;
+      color: #888;
+      transition: all 0.15s;
+    }
+    .feedback-btn:hover { border-color: #aaa; color: #333; }
+    .feedback-btn.selected-up { border-color: #10b981; color: #10b981; background: #f0fdf4; }
+    .feedback-btn.selected-down { border-color: #ef4444; color: #ef4444; background: #fef2f2; }
 
     .typing {
       align-self: flex-start;
@@ -93,14 +120,17 @@
       padding: 8px 14px;
     }
 
-    .chat-input {
-      display: flex;
-      padding: 14px;
+    .chat-input-area {
       border-top: 1px solid #eee;
-      gap: 10px;
+      padding: 12px 14px;
     }
 
-    .chat-input input {
+    .chat-input {
+      display: flex;
+      gap: 8px;
+    }
+
+    .chat-input input[type="text"] {
       flex: 1;
       border: 1px solid #ddd;
       border-radius: 10px;
@@ -108,25 +138,53 @@
       font-size: 14px;
       outline: none;
     }
-    .chat-input input:focus { border-color: #4f46e5; }
+    .chat-input input[type="text"]:focus { border-color: #4f46e5; }
 
     .chat-input button {
       background: #4f46e5;
       color: #fff;
       border: none;
       border-radius: 10px;
-      padding: 10px 18px;
+      padding: 10px 16px;
       font-size: 14px;
       cursor: pointer;
     }
     .chat-input button:hover { background: #4338ca; }
     .chat-input button:disabled { background: #a5b4fc; cursor: not-allowed; }
 
+    .upload-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .upload-row label {
+      font-size: 12px;
+      color: #4f46e5;
+      cursor: pointer;
+      padding: 4px 10px;
+      border: 1px dashed #c7d2fe;
+      border-radius: 8px;
+    }
+    .upload-row label:hover { background: #eef2ff; }
+    .upload-row .file-name { font-size: 12px; color: #666; }
+    .upload-row button {
+      font-size: 12px;
+      padding: 4px 10px;
+      background: #10b981;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .upload-row button:hover { background: #059669; }
+
     .suggestions {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-      padding: 0 20px 14px;
+      padding: 0 20px 12px;
     }
 
     .suggestions button {
@@ -139,17 +197,123 @@
       cursor: pointer;
     }
     .suggestions button:hover { background: #e0e7ff; }
+
+    /* Pre-chat form overlay */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+    .overlay.hidden { display: none; }
+
+    .user-form {
+      background: #fff;
+      border-radius: 16px;
+      padding: 32px 28px;
+      width: 360px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+    }
+
+    .user-form h3 {
+      font-size: 17px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 4px;
+    }
+
+    .user-form p {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #444;
+      margin-bottom: 5px;
+    }
+
+    .form-group input {
+      width: 100%;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 14px;
+      outline: none;
+      transition: border 0.15s;
+      box-sizing: border-box;
+    }
+    .form-group input:focus { border-color: #4f46e5; }
+
+    .optional { font-weight: 400; color: #999; font-size: 11px; }
+
+    .form-error {
+      font-size: 12px;
+      color: #ef4444;
+      margin-bottom: 10px;
+      display: none;
+    }
+
+    .start-btn {
+      width: 100%;
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 11px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+    .start-btn:hover { background: #4338ca; }
+    .start-btn:disabled { background: #a5b4fc; cursor: not-allowed; }
   </style>
 </head>
 <body>
+  <!-- Pre-chat user form -->
+  <div class="overlay" id="overlay">
+    <div class="user-form">
+      <h3>👋 Before we start</h3>
+      <p>Just a few details so we can assist you better.</p>
+      <div class="form-group">
+        <label for="userName">Name <span style="color:#ef4444">*</span></label>
+        <input type="text" id="userName" placeholder="Your full name" autocomplete="name">
+      </div>
+      <div class="form-group">
+        <label for="userEmail">Email <span class="optional">(optional)</span></label>
+        <input type="email" id="userEmail" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label for="userPhone">Phone <span class="optional">(optional)</span></label>
+        <input type="tel" id="userPhone" placeholder="+91 98765 43210" autocomplete="tel">
+      </div>
+      <div class="form-error" id="formError">Please enter your name to continue.</div>
+      <button class="start-btn" id="startBtn" onclick="startChat()">Start Chat →</button>
+    </div>
+  </div>
+
   <div class="chat-container">
     <div class="chat-header">
-      <h2>Customer Support</h2>
-      <button onclick="resetChat()">New Chat</button>
+      <h2>Knowledge Assistant</h2>
+      <div class="header-actions">
+        <a href="/admin">Admin</a>
+        <button onclick="resetChat()">New Chat</button>
+      </div>
     </div>
 
     <div class="chat-messages" id="messages">
-      <div class="message bot">Hi! I'm your support assistant. How can I help you today?</div>
+      <div class="message bot">Hi! I can answer questions from your knowledge base. Upload documents or ask me anything!</div>
     </div>
 
     <div class="suggestions" id="suggestions">
@@ -159,9 +323,17 @@
       <button onclick="askSuggestion(this)">Shipping time?</button>
     </div>
 
-    <div class="chat-input">
-      <input type="text" id="input" placeholder="Type your question..." autocomplete="off">
-      <button id="sendBtn" onclick="sendMessage()">Send</button>
+    <div class="chat-input-area">
+      <div class="chat-input">
+        <input type="text" id="input" placeholder="Ask a question..." autocomplete="off">
+        <button id="sendBtn" onclick="sendMessage()">Send</button>
+      </div>
+      <div class="upload-row">
+        <label for="fileInput">+ Upload Document</label>
+        <input type="file" id="fileInput" accept=".csv,.pdf,.txt" hidden>
+        <span class="file-name" id="fileName"></span>
+        <button id="uploadBtn" onclick="uploadFile()" style="display:none">Upload</button>
+      </div>
     </div>
   </div>
 
@@ -170,18 +342,68 @@
     const inputEl = document.getElementById('input');
     const sendBtn = document.getElementById('sendBtn');
     const suggestionsEl = document.getElementById('suggestions');
+    const fileInput = document.getElementById('fileInput');
+    const fileNameEl = document.getElementById('fileName');
+    const uploadBtn = document.getElementById('uploadBtn');
 
     inputEl.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !sendBtn.disabled) sendMessage();
     });
 
-    function addMessage(text, type) {
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length) {
+        fileNameEl.textContent = fileInput.files[0].name;
+        uploadBtn.style.display = 'inline-block';
+      }
+    });
+
+    function addMessage(text, type, meta, queryId) {
       const div = document.createElement('div');
       div.className = `message ${type}`;
       div.textContent = text;
+      if (meta) {
+        const metaDiv = document.createElement('div');
+        metaDiv.className = 'meta';
+        const parts = [];
+        if (meta.response_time_ms) parts.push(`${meta.response_time_ms}ms`);
+        if (meta.sources_used != null) parts.push(`${meta.sources_used} sources`);
+        if (parts.length) metaDiv.textContent = parts.join(' · ');
+        div.appendChild(metaDiv);
+      }
+      if (type === 'bot' && queryId) {
+        const feedbackRow = document.createElement('div');
+        feedbackRow.className = 'feedback-row';
+
+        const upBtn = document.createElement('button');
+        upBtn.className = 'feedback-btn';
+        upBtn.textContent = '👍';
+        upBtn.onclick = () => sendFeedback(queryId, 1, upBtn, downBtn);
+
+        const downBtn = document.createElement('button');
+        downBtn.className = 'feedback-btn';
+        downBtn.textContent = '👎';
+        downBtn.onclick = () => sendFeedback(queryId, -1, upBtn, downBtn);
+
+        feedbackRow.appendChild(upBtn);
+        feedbackRow.appendChild(downBtn);
+        div.appendChild(feedbackRow);
+      }
       messagesEl.appendChild(div);
       messagesEl.scrollTop = messagesEl.scrollHeight;
-      return div;
+    }
+
+    async function sendFeedback(queryId, rating, upBtn, downBtn) {
+      upBtn.disabled = true;
+      downBtn.disabled = true;
+      upBtn.classList.remove('selected-up');
+      downBtn.classList.remove('selected-down');
+      if (rating === 1) upBtn.classList.add('selected-up');
+      else downBtn.classList.add('selected-down');
+      await fetch('/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query_id: queryId, rating }),
+      });
     }
 
     function showTyping() {
@@ -220,7 +442,7 @@
         const data = await res.json();
 
         if (res.ok) {
-          addMessage(data.answer, 'bot');
+          addMessage(data.answer, 'bot', data.meta, data.query_id);
         } else {
           addMessage(data.error || 'Something went wrong', 'bot error');
         }
@@ -233,6 +455,36 @@
       inputEl.focus();
     }
 
+    async function uploadFile() {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      addMessage(`Uploading ${file.name}...`, 'user');
+      showTyping();
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const res = await fetch('/upload', { method: 'POST', body: formData });
+        removeTyping();
+        const data = await res.json();
+
+        if (res.ok) {
+          addMessage(`"${data.filename}" uploaded — ${data.chunks_added} chunks added to knowledge base (${data.total_documents} total).`, 'bot success');
+        } else {
+          addMessage(data.error || 'Upload failed', 'bot error');
+        }
+      } catch {
+        removeTyping();
+        addMessage('Upload failed. Please try again.', 'bot error');
+      }
+
+      fileInput.value = '';
+      fileNameEl.textContent = '';
+      uploadBtn.style.display = 'none';
+    }
+
     function askSuggestion(btn) {
       inputEl.value = btn.textContent;
       sendMessage();
@@ -240,12 +492,60 @@
 
     async function resetChat() {
       await fetch('/reset', { method: 'POST' });
-      messagesEl.innerHTML = '<div class="message bot">Hi! I\'m your support assistant. How can I help you today?</div>';
+      messagesEl.innerHTML = `<div class="message bot">Hi${window._userName ? ' ' + window._userName : ''}! I can answer questions from your knowledge base. Upload documents or ask me anything!</div>`;
       suggestionsEl.style.display = 'flex';
       inputEl.focus();
     }
 
-    inputEl.focus();
+    async function startChat() {
+      const name = document.getElementById('userName').value.trim();
+      const email = document.getElementById('userEmail').value.trim();
+      const phone = document.getElementById('userPhone').value.trim();
+      const errorEl = document.getElementById('formError');
+      const startBtn = document.getElementById('startBtn');
+
+      if (!name) {
+        errorEl.style.display = 'block';
+        document.getElementById('userName').focus();
+        return;
+      }
+
+      errorEl.style.display = 'none';
+      startBtn.disabled = true;
+      startBtn.textContent = 'Starting...';
+
+      try {
+        const res = await fetch('/session/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, phone }),
+        });
+
+        if (res.ok) {
+          window._userName = name;
+          document.getElementById('overlay').classList.add('hidden');
+          messagesEl.innerHTML = `<div class="message bot">Hi ${name}! I can answer questions from your knowledge base. Upload documents or ask me anything!</div>`;
+          inputEl.focus();
+        } else {
+          startBtn.disabled = false;
+          startBtn.textContent = 'Start Chat →';
+          errorEl.textContent = 'Something went wrong. Please try again.';
+          errorEl.style.display = 'block';
+        }
+      } catch {
+        startBtn.disabled = false;
+        startBtn.textContent = 'Start Chat →';
+        errorEl.textContent = 'Network error. Please try again.';
+        errorEl.style.display = 'block';
+      }
+    }
+
+    // Allow Enter key on form
+    document.getElementById('userName').addEventListener('keydown', e => { if (e.key === 'Enter') startChat(); });
+    document.getElementById('userEmail').addEventListener('keydown', e => { if (e.key === 'Enter') startChat(); });
+    document.getElementById('userPhone').addEventListener('keydown', e => { if (e.key === 'Enter') startChat(); });
+
+    document.getElementById('userName').focus();
   </script>
 </body>
 </html>
