@@ -198,9 +198,13 @@ def call_mistral(messages: list[dict]) -> str:
 
 def retrieve_context(question: str) -> tuple[str | None, float, int]:
     """Returns (context_string, best_relevance_score, num_sources_used)."""
+    total = collection.count()
+    if total == 0:
+        return None, -1, 0
+
     results = collection.query(
         query_texts=[question],
-        n_results=5,
+        n_results=min(5, total),
         include=["documents", "metadatas", "distances"],
     )
 

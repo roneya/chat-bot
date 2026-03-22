@@ -4,6 +4,6 @@ __pycache__/
 .venv/
 venv/
 .claude/
-chroma_data/analytics.db
+chroma_data/
 uploads/
 .chatbot.pid
