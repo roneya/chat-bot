@@ -125,7 +125,7 @@ def seed_faqs():
         print(f"Collection '{COLLECTION_NAME}' already has {coll.count()} documents, skipping seed.")
         return
 
-    count = ingest_csv(faq_file, coll, source="upload/faqs.csv")
+    count = ingest_csv(faq_file, coll, source="uploads/faqs.csv")
     print(f"Done — {count} FAQs loaded into ChromaDB ({CHROMA_PATH})")
 
 
