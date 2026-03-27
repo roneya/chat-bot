@@ -5,7 +5,6 @@ __pycache__/
 venv/
 .claude/
 chroma_data/
-uploads/
 .chatbot.pid
 02 Projects/
 01 Daily Logs/
