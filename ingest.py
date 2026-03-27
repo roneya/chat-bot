@@ -112,7 +112,7 @@ def ingest_text(filepath: str, collection, source: str = "txt") -> int:
 
 def seed_faqs():
     """Seed the knowledge base with the default FAQs CSV."""
-    faq_file = "faqs.csv"
+    faq_file = "uploads/faqs.csv"
     if not os.path.exists(faq_file):
         print(f"Warning: {faq_file} not found — skipping seed. Upload CSV from the admin panel.")
         return
@@ -125,7 +125,7 @@ def seed_faqs():
         print(f"Collection '{COLLECTION_NAME}' already has {coll.count()} documents, skipping seed.")
         return
 
-    count = ingest_csv(faq_file, coll, source="faqs.csv")
+    count = ingest_csv(faq_file, coll, source="upload/faqs.csv")
     print(f"Done — {count} FAQs loaded into ChromaDB ({CHROMA_PATH})")
 
 
