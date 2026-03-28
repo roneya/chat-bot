@@ -39,7 +39,7 @@ if not MISTRAL_API_KEY:
 MISTRAL_MODEL = os.environ.get("MISTRAL_MODEL", "mistral-medium-latest")
 CHROMA_PATH = os.environ.get("CHROMA_PATH", "./chroma_data")
 COLLECTION_NAME = os.environ.get("COLLECTION_NAME", "knowledge")
-RELEVANCE_THRESHOLD = float(os.environ.get("RELEVANCE_THRESHOLD", "1.2"))
+RELEVANCE_THRESHOLD = float(os.environ.get("RELEVANCE_THRESHOLD", "0.6"))
 UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "./uploads")
 DB_PATH = os.environ.get("DB_PATH", os.path.join(CHROMA_PATH, "analytics.db"))
 
