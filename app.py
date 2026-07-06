@@ -7,7 +7,7 @@ import uuid
 from functools import wraps
 
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify, render_template, session, g
+from flask import Flask, request, jsonify, redirect, render_template, session, g
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -319,17 +319,19 @@ def ask(question: str, chat_history: list[dict]) -> tuple[str, float, int]:
 # --- Admin auth ------------------------------------------------------------ #
 
 
+def is_admin_authed() -> bool:
+    return bool(ADMIN_PASSWORD) and session.get("is_admin") is True
+
+
 def require_admin(f):
-    """HTTP Basic Auth for admin pages/APIs. Username is ignored, only the
-    password is checked against ADMIN_PASSWORD."""
+    """Session-based guard for admin APIs — log in with the password at /admin."""
 
     @wraps(f)
     def wrapper(*args, **kwargs):
         if not ADMIN_PASSWORD:
             return jsonify({"error": "Admin access is disabled — set the ADMIN_PASSWORD env var"}), 503
-        auth = request.authorization
-        if not auth or not hmac.compare_digest(auth.password or "", ADMIN_PASSWORD):
-            return "Authentication required", 401, {"WWW-Authenticate": 'Basic realm="Admin"'}
+        if not is_admin_authed():
+            return jsonify({"error": "Admin login required"}), 401
         return f(*args, **kwargs)
 
     return wrapper
@@ -351,9 +353,30 @@ def index():
 
 
 @app.route("/admin")
-@require_admin
 def admin():
+    if not ADMIN_PASSWORD:
+        return "Admin access is disabled — set the ADMIN_PASSWORD env var", 503
+    if not is_admin_authed():
+        return render_template("admin_login.html")
     return render_template("admin.html")
+
+
+@app.route("/admin/login", methods=["POST"])
+@limiter.limit("10 per minute")
+def admin_login():
+    if not ADMIN_PASSWORD:
+        return "Admin access is disabled — set the ADMIN_PASSWORD env var", 503
+    password = request.form.get("password", "")
+    if not hmac.compare_digest(password, ADMIN_PASSWORD):
+        return render_template("admin_login.html", error="Wrong password"), 401
+    session["is_admin"] = True
+    return redirect("/admin")
+
+
+@app.route("/admin/logout", methods=["POST"])
+def admin_logout():
+    session.pop("is_admin", None)
+    return redirect("/admin")
 
 
 @app.route("/ask", methods=["POST"])
