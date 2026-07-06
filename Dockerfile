@@ -15,4 +15,6 @@ RUN python ingest.py
 
 EXPOSE 5001
 
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:5001", "--workers", "2", "--timeout", "120"]
+# Single worker: ChromaDB PersistentClient caches the vector index per process,
+# so docs added via /api/teach in one worker are invisible to queries in another.
+CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:5001", "--workers", "1", "--threads", "4", "--timeout", "120"]

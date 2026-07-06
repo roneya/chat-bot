@@ -37,6 +37,7 @@ if not MISTRAL_API_KEY:
     raise RuntimeError("MISTRAL_API_KEY is not set. Add it to .env or export it.")
 
 MISTRAL_MODEL = os.environ.get("MISTRAL_MODEL", "mistral-medium-latest")
+REWRITE_MODEL = os.environ.get("REWRITE_MODEL", "mistral-small-latest")
 CHROMA_PATH = os.environ.get("CHROMA_PATH", "./chroma_data")
 COLLECTION_NAME = os.environ.get("COLLECTION_NAME", "knowledge")
 RELEVANCE_THRESHOLD = float(os.environ.get("RELEVANCE_THRESHOLD", "0.6"))
@@ -196,6 +197,41 @@ def call_mistral(messages: list[dict]) -> str:
 
 # --- RAG pipeline --------------------------------------------------------- #
 
+REWRITE_PROMPT = (
+    "Rewrite the user's question into a clean, concise FAQ-style search query. "
+    "Remove filler words, fix typos, and make it sound like a support FAQ question. "
+    "Return only the rewritten query — no explanation, no quotes."
+)
+
+
+def rewrite_query(question: str) -> str:
+    """Rewrite a messy user question into a clean FAQ-style search query."""
+    try:
+        resp = requests.post(
+            MISTRAL_URL,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {MISTRAL_API_KEY}",
+            },
+            json={
+                "model": REWRITE_MODEL,
+                "messages": [
+                    {"role": "system", "content": REWRITE_PROMPT},
+                    {"role": "user", "content": question},
+                ],
+                "temperature": 0.0,
+                "max_tokens": 64,
+            },
+            timeout=10,
+        )
+        resp.raise_for_status()
+        rewritten = resp.json()["choices"][0]["message"]["content"].strip()
+        logger.info("Query rewrite: %r → %r", question, rewritten)
+        return rewritten
+    except Exception:
+        logger.warning("Query rewrite failed, using original question")
+        return question
+
 
 def retrieve_context(question: str) -> tuple[str | None, float, int]:
     """Returns (context_string, best_relevance_score, num_sources_used)."""
@@ -246,7 +282,8 @@ def build_messages(context: str | None, chat_history: list[dict], question: str)
 
 def ask(question: str, chat_history: list[dict]) -> tuple[str, float, int]:
     """Returns (answer, relevance_score, source_count)."""
-    context, score, source_count = retrieve_context(question)
+    search_query = rewrite_query(question)
+    context, score, source_count = retrieve_context(search_query)
     messages = build_messages(context, chat_history, question)
     answer = call_mistral(messages)
     return answer, score, source_count
