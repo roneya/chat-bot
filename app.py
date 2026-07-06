@@ -64,7 +64,10 @@ MISTRAL_MODEL = os.environ.get("MISTRAL_MODEL", "mistral-medium-latest")
 REWRITE_MODEL = os.environ.get("REWRITE_MODEL", "mistral-small-latest")
 CHROMA_PATH = os.environ.get("CHROMA_PATH", "./chroma_data")
 COLLECTION_NAME = os.environ.get("COLLECTION_NAME", "knowledge")
-RELEVANCE_THRESHOLD = float(os.environ.get("RELEVANCE_THRESHOLD", "0.6"))
+# Max squared-L2 distance to accept a match (ChromaDB's default metric).
+# LOWER = stricter. Verbatim matches land ~0.7, unrelated docs ~1.7+, so 0.6
+# rejected even exact hits. 1.2 keeps real matches and drops unrelated ones.
+RELEVANCE_THRESHOLD = float(os.environ.get("RELEVANCE_THRESHOLD", "1.2"))
 UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "./uploads")
 DB_PATH = os.environ.get("DB_PATH", os.path.join(CHROMA_PATH, "analytics.db"))
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
