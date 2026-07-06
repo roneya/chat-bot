@@ -48,17 +48,20 @@ def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVE
 def ingest_csv(filepath: str, collection, source: str = "csv") -> int:
     """Ingest a CSV file. Supports Q&A format (question,answer) or generic text columns."""
     df = pd.read_csv(filepath)
-    df = df.dropna()
 
     docs = []
     metadatas = []
 
     if {"question", "answer"}.issubset(df.columns):
+        # Only require question+answer — a NaN in an optional extra column
+        # shouldn't drop the whole FAQ row
+        df = df.dropna(subset=["question", "answer"])
         for _, row in df.iterrows():
             docs.append(f"Q: {row['question']}\nA: {row['answer']}")
             metadatas.append({"source": source, "type": "faq"})
     else:
         # Combine all text columns
+        df = df.dropna(how="all")
         for _, row in df.iterrows():
             text = " | ".join(str(v) for v in row.values if pd.notna(v))
             docs.append(text)

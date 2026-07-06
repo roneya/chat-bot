@@ -1,14 +1,17 @@
+import hmac
 import logging
 import os
 import sqlite3
 import time
 import uuid
+from functools import wraps
 
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, render_template, session, g
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
 import chromadb
 import requests
@@ -23,10 +26,31 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+def _load_secret_key():
+    key = os.environ.get("SECRET_KEY")
+    if key:
+        return key
+    # No env key (local dev): persist a generated one so restarts don't
+    # invalidate every session cookie.
+    path = os.path.join(os.environ.get("CHROMA_PATH", "./chroma_data"), ".secret_key")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    if os.path.exists(path):
+        with open(path) as f:
+            return f.read().strip()
+    key = uuid.uuid4().hex
+    with open(path, "w") as f:
+        f.write(key)
+    return key
+
+
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", uuid.uuid4().hex)
+app.secret_key = _load_secret_key()
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MB upload limit
 CORS(app)
+
+# Render sits behind a reverse proxy — trust X-Forwarded-* headers so
+# rate limiting sees real client IPs instead of the proxy's.
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 limiter = Limiter(get_remote_address, app=app, default_limits=["60 per minute"])
 
@@ -43,6 +67,9 @@ COLLECTION_NAME = os.environ.get("COLLECTION_NAME", "knowledge")
 RELEVANCE_THRESHOLD = float(os.environ.get("RELEVANCE_THRESHOLD", "0.6"))
 UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "./uploads")
 DB_PATH = os.environ.get("DB_PATH", os.path.join(CHROMA_PATH, "analytics.db"))
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
+if not ADMIN_PASSWORD:
+    logger.warning("ADMIN_PASSWORD is not set — the admin panel and admin APIs are disabled")
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -289,6 +316,25 @@ def ask(question: str, chat_history: list[dict]) -> tuple[str, float, int]:
     return answer, score, source_count
 
 
+# --- Admin auth ------------------------------------------------------------ #
+
+
+def require_admin(f):
+    """HTTP Basic Auth for admin pages/APIs. Username is ignored, only the
+    password is checked against ADMIN_PASSWORD."""
+
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if not ADMIN_PASSWORD:
+            return jsonify({"error": "Admin access is disabled — set the ADMIN_PASSWORD env var"}), 503
+        auth = request.authorization
+        if not auth or not hmac.compare_digest(auth.password or "", ADMIN_PASSWORD):
+            return "Authentication required", 401, {"WWW-Authenticate": 'Basic realm="Admin"'}
+        return f(*args, **kwargs)
+
+    return wrapper
+
+
 # --- File helpers --------------------------------------------------------- #
 
 
@@ -305,6 +351,7 @@ def index():
 
 
 @app.route("/admin")
+@require_admin
 def admin():
     return render_template("admin.html")
 
@@ -338,6 +385,9 @@ def ask_endpoint():
 
     session["history"].append({"role": "user", "content": question})
     session["history"].append({"role": "assistant", "content": answer})
+    # Flask sessions live in a ~4KB browser cookie — keep only the turns
+    # build_messages actually uses, or the cookie overflows and gets dropped
+    session["history"] = session["history"][-12:]
     session.modified = True
 
     return jsonify({
@@ -469,6 +519,7 @@ def upload_document():
 
 
 @app.route("/api/users", methods=["GET"])
+@require_admin
 def list_users():
     db = get_db()
     rows = db.execute("""
@@ -483,6 +534,7 @@ def list_users():
 
 
 @app.route("/api/documents", methods=["GET"])
+@require_admin
 def list_documents():
     db = get_db()
     rows = db.execute(
@@ -492,6 +544,7 @@ def list_documents():
 
 
 @app.route("/api/documents/<int:doc_id>", methods=["DELETE"])
+@require_admin
 def delete_document(doc_id):
     db = get_db()
     row = db.execute("SELECT filename FROM documents WHERE id = ?", (doc_id,)).fetchone()
@@ -520,6 +573,7 @@ def delete_document(doc_id):
 
 
 @app.route("/api/analytics", methods=["GET"])
+@require_admin
 def get_analytics():
     db = get_db()
 
@@ -564,10 +618,14 @@ def get_analytics():
 
 
 @app.route("/api/kb", methods=["GET"])
+@require_admin
 def list_kb():
     """Return all documents stored in ChromaDB."""
-    limit = int(request.args.get("limit", 100))
-    offset = int(request.args.get("offset", 0))
+    try:
+        limit = int(request.args.get("limit", 100))
+        offset = int(request.args.get("offset", 0))
+    except ValueError:
+        return jsonify({"error": "limit and offset must be integers"}), 400
 
     results = collection.get(include=["documents", "metadatas"])
     ids = results["ids"]
@@ -592,6 +650,7 @@ def list_kb():
 
 
 @app.route("/api/kb/<string:doc_id>", methods=["DELETE"])
+@require_admin
 def delete_kb_entry(doc_id):
     """Delete a single entry from ChromaDB by ID."""
     try:
@@ -602,6 +661,7 @@ def delete_kb_entry(doc_id):
 
 
 @app.route("/api/kb/clear", methods=["POST"])
+@require_admin
 def clear_kb():
     """Wipe all entries from ChromaDB and reset all SQLite tables."""
     try:
@@ -625,6 +685,7 @@ def clear_kb():
 
 
 @app.route("/api/teach", methods=["POST"])
+@require_admin
 def teach():
     """Admin endpoint to add a Q&A pair directly into ChromaDB."""
     data = request.get_json(silent=True)
@@ -646,7 +707,8 @@ def teach():
     # Mark all unanswered queries with this question as answered
     db = get_db()
     db.execute(
-        "UPDATE queries SET answered_by_admin = 1 WHERE question = ? AND source_docs = 0",
+        "UPDATE queries SET answered_by_admin = 1 "
+        "WHERE lower(trim(question)) = lower(trim(?)) AND source_docs = 0",
         (question,),
     )
     db.commit()
